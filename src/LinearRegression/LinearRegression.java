@@ -24,16 +24,16 @@ public class LinearRegression {
         /* Linear Regression */
         /* 2 step process */
         // 1) find beta
-        Matrix closedBeta = getClosedBeta(train_x, train_y);
-        Matrix bgdBeta = getbgdBeta(train_x, train_y);
+       // Matrix closedBeta = getClosedBeta(train_x, train_y);
+       // Matrix bgdBeta = getbgdBeta(train_x, train_y);
         Matrix sgdBeta = getsgdBeta(train_x, train_y);
         // 2) predict y for test data using beta calculated from train data
-        Matrix predictedClosedY = modifiedX(test_x).times(closedBeta);
-        Matrix predictedbgdY = test_x.times(bgdBeta);
+        //Matrix predictedClosedY = modifiedX(test_x).times(closedBeta);
+        //Matrix predictedbgdY = test_x.times(bgdBeta);
         Matrix predictedsgdY = test_x.times(sgdBeta);
         // Output
-        printClosedOutput(predictedClosedY);
-        printbgdOutput(predictedbgdY);
+        //printClosedOutput(predictedClosedY);
+        //printbgdOutput(predictedbgdY);
         printsgdOutput(predictedsgdY);
         System.out.println("Done");
     }
@@ -62,8 +62,70 @@ public class LinearRegression {
     /**  @params: X and Y matrix of training data
      * returns value of beta calculated using the formula beta = (X^T*X)^ -1)*(X^T*Y)
      */
+    
     private static Matrix getsgdBeta(Matrix trainX, Matrix trainY) {
-    	
+    	int nCols = trainX.getColumnDimension();
+    	double eta = 0.0001;
+    	Matrix oldBeta = new Matrix(1, nCols);
+    	Matrix newBeta = new Matrix(1,nCols);
+    		for(int c=0; c<nCols; c++){
+    			oldBeta.set(0, c, 1);
+    			newBeta.set(0, c, 1);
+    		}
+    	 int n = 0;
+    	 while(true) {
+    		 oldBeta = newBeta;
+    		 newBeta = gradientSBeta(trainX,trainY, oldBeta, eta);
+    		 if(compareBetaEqual(oldBeta, newBeta)) {
+    			 break;
+    		 }
+    		n++;
+    		System.out.println(n);
+    		if (n == 5000) {
+    			//return newBeta.transpose();
+    			break;
+    		}
+    	}
+    	return newBeta.transpose(); 
+    }
+    
+    private static Matrix gradientSBeta(Matrix trainX, Matrix trainY, Matrix beta, double eta){
+    	int nRows = trainX.getRowDimension();
+    	int nCols = trainX.getColumnDimension();
+    	Matrix xi = new Matrix(1, nCols);
+    	Matrix bi = new Matrix(1, nCols);
+    	double yi = 0;
+//    	Matrix sumXi = new Matrix(1, nCols);
+//    	for(int r=0; r<nRows; r++){
+//			yi.set(r, 0, 0);
+//		}
+    	for (int r=0;r<nRows;r++){
+    		for(int c=0;c<nCols;c++){
+    			xi.set(0, c, trainX.get(r, c));  			
+    			bi.set(0, c, beta.get(0, c));
+    		}
+    		yi = trainY.get(r, 0);
+    		Matrix calMat = bi.times(xi.transpose());
+    		double calVal = calMat.get(0, 0);
+    		calVal =yi-calVal;
+    		bi.plusEquals(xi.times(2 * eta * calVal));
+    	}
+    	return bi;
+    } 
+    private static boolean compareBetaEqual(Matrix oldBeta, Matrix newBeta){
+    	boolean test = true;
+    	int nCols = oldBeta.getColumnDimension();
+    	for(int c=0; c<nCols; c++){
+    		double oldB =oldBeta.get(0, c);
+    		double newB = newBeta.get(0, c);
+    		if(Math.abs(oldB - newB) < 0.0000001) {
+    			test = test & true;
+    		}
+    		else {
+    			test = test & false;
+    		}
+    	}
+    	return test;
     }
     private static Matrix getClosedBeta(Matrix trainX, Matrix trainY) {
     	Matrix xT = modifiedX(trainX).transpose();
@@ -84,52 +146,40 @@ public class LinearRegression {
 			newBeta.set(0, c, 1);
 		}
     	int n = 0;
-//    	while(n<1){
-//         while(!compareBeta(oldBeta,newBeta)){
     	 while(true) {
     		oldBeta = newBeta;
     		Matrix sumXi = gradientBeta(trainX,trainY, oldBeta);
-//    		sumXi.timesEquals(eta).print(0, 4);
     		newBeta = oldBeta.minus(sumXi.timesEquals(eta));
     		if(compareBeta(oldBeta, newBeta)) {
     			break;
     		}
     		n++;
-    		System.out.println(n);
     		if (n == 5000) {
     			break;
     		}
     	}
-    	//return newBeta;
-    	
-    	
     	return newBeta.transpose(); 	
     }
     
     private static boolean compareBeta(Matrix oldBeta, Matrix newBeta){
-//    	oldBeta.print(0, 2);
-//    	newBeta.print(0, 2);
     	boolean test = true;
     	int nCols = oldBeta.getColumnDimension();
     	for(int c=0; c<nCols; c++){
     		double oldB =oldBeta.get(0, c);
     		double newB = newBeta.get(0, c);
-    		if( Math.abs(oldB - newB) < 0.0001 ) { // abs(old - new) < eplsilon)Math.abs(d - 1.0) < 0.001);
+    		if( Math.abs(oldB - newB) < 0.0001 ) {
     			test = test & true;
     		}
     		else {
     			test = test & false;
     		}
     	}
-    	System.out.println(test);
     	return test;
     }
     
     private static Matrix gradientBeta(Matrix trainX, Matrix trainY, Matrix beta){
     	int nRows = trainX.getRowDimension();
     	int nCols = trainX.getColumnDimension();
-//    	beta.print(0, 4);
-    	
     	Matrix xi = new Matrix(1, nCols);
     	Matrix bi = new Matrix(1, nCols);
     	Matrix sumXi = new Matrix(1, nCols);
