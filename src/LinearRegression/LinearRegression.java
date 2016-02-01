@@ -11,7 +11,7 @@ import java.io.IOException;
  */
 public class LinearRegression {
     public static void linearRegression() throws Exception {
-//        Matrix trainingData = MatrixData.getDataMatrix("/Users/mounika/Documents/workspace/DataMiningHW1/src/LinearRegression/TestAlgo.java");
+        // Matrix trainingData = MatrixData.getDataMatrix("/Users/mounika/Documents/workspace/DataMiningHW1/src/LinearRegression/TestAlgo.java");
         Matrix trainingData = MatrixData.getDataMatrix("/Users/mounika/Documents/workspace/DataMiningHW1/data/linear_regression/linear-regression-train.csv");
         // getMatrix(Initial row index, Final row index, Initial column index, Final column index)
         
@@ -24,19 +24,30 @@ public class LinearRegression {
         /* Linear Regression */
         /* 2 step process */
         // 1) find beta
-       // Matrix closedBeta = getClosedBeta(train_x, train_y);
-       // Matrix bgdBeta = getbgdBeta(train_x, train_y);
+       Matrix closedBeta = getClosedBeta(train_x, train_y);
+       Matrix bgdBeta = getbgdBeta(train_x, train_y);
         Matrix sgdBeta = getsgdBeta(train_x, train_y);
         // 2) predict y for test data using beta calculated from train data
-        //Matrix predictedClosedY = modifiedX(test_x).times(closedBeta);
-        //Matrix predictedbgdY = test_x.times(bgdBeta);
+        Matrix predictedClosedY = modifiedX(test_x).times(closedBeta);
+        Matrix predictedbgdY = test_x.times(bgdBeta);
         Matrix predictedsgdY = test_x.times(sgdBeta);
         // Output
-        //printClosedOutput(predictedClosedY);
-        //printbgdOutput(predictedbgdY);
+        printClosedOutput(predictedClosedY);
+        printbgdOutput(predictedbgdY);
         printsgdOutput(predictedsgdY);
         System.out.println("Done");
     }
+    
+    /**  @params: X and Y matrix of training data
+     * returns value of beta calculated using the formula beta = (X^T*X)^ -1)*(X^T*Y)
+     */
+    
+ // start functions to calculate Closed LR
+    private static Matrix getClosedBeta(Matrix trainX, Matrix trainY) {
+    	Matrix xT = modifiedX(trainX).transpose();
+    	Matrix result = xT.times(modifiedX(trainX)).inverse().times(xT.times(trainY));
+    	return result;
+    	}
     
     public static Matrix modifiedX(Matrix matX){
        	int nRows = matX.getRowDimension();
@@ -59,66 +70,57 @@ public class LinearRegression {
         //System.out.print(newX.get(0, 1));
         return newX;
     }
-    /**  @params: X and Y matrix of training data
-     * returns value of beta calculated using the formula beta = (X^T*X)^ -1)*(X^T*Y)
-     */
-    
+ // end functions to calculate Closed LR
+    // start functions to calculate SGD 
     private static Matrix getsgdBeta(Matrix trainX, Matrix trainY) {
     	int nCols = trainX.getColumnDimension();
-    	double eta = 0.0001;
+    	int nRows = trainX.getRowDimension();
+    	double eta = 0.001;
     	Matrix oldBeta = new Matrix(1, nCols);
     	Matrix newBeta = new Matrix(1,nCols);
     		for(int c=0; c<nCols; c++){
-    			oldBeta.set(0, c, 1);
-    			newBeta.set(0, c, 1);
+    			oldBeta.set(0, c, 0);
+    			newBeta.set(0, c, 0);
     		}
     	 int n = 0;
-    	 while(true) {
-    		 oldBeta = newBeta;
-    		 newBeta = gradientSBeta(trainX,trainY, oldBeta, eta);
-    		 if(compareBetaEqual(oldBeta, newBeta)) {
-    			 break;
-    		 }
-    		n++;
-    		System.out.println(n);
-    		if (n == 5000) {
-    			//return newBeta.transpose();
-    			break;
-    		}
-    	}
-    	return newBeta.transpose(); 
+    	 while(n < 1000) {
+    	    	Matrix xi = new Matrix(1, nCols);
+    	    	Matrix bi = new Matrix(1, nCols);
+    	    	Matrix yi = new Matrix(1, 1);
+    	    	Matrix calMat = new Matrix(1,1);
+    	    	for (int r=0;r<nRows;r++){
+    	    		for(int c=0;c<nCols;c++){
+    	    			xi.set(0, c, trainX.get(r, c));  			
+    	    			bi.set(0, c, oldBeta.get(0, c));
+    	    		}
+    	    		yi.set(0,0,trainY.get(r, 0));
+    	    		calMat.set(0, 0, (bi.times(xi.transpose()).get(0, 0)));
+    	    		yi.minusEquals(calMat);
+    	    		yi.timesEquals(2*eta);
+    	    		newBeta = bi.plus(xi.times(yi.get(0, 0)));
+    	    		if(compareBetaEqual(oldBeta,newBeta)) {
+    	    			return newBeta.transpose();
+    			    	//break;
+    		    	}
+    		    	else {
+    		    		
+    		    		oldBeta = newBeta;
+    		    	}
+    	    	}
+    	    	n++;
+    	    	System.out.println(n);
+    	 }
+ 		 return newBeta.transpose();
+    	
     }
-    
-    private static Matrix gradientSBeta(Matrix trainX, Matrix trainY, Matrix beta, double eta){
-    	int nRows = trainX.getRowDimension();
-    	int nCols = trainX.getColumnDimension();
-    	Matrix xi = new Matrix(1, nCols);
-    	Matrix bi = new Matrix(1, nCols);
-    	double yi = 0;
-//    	Matrix sumXi = new Matrix(1, nCols);
-//    	for(int r=0; r<nRows; r++){
-//			yi.set(r, 0, 0);
-//		}
-    	for (int r=0;r<nRows;r++){
-    		for(int c=0;c<nCols;c++){
-    			xi.set(0, c, trainX.get(r, c));  			
-    			bi.set(0, c, beta.get(0, c));
-    		}
-    		yi = trainY.get(r, 0);
-    		Matrix calMat = bi.times(xi.transpose());
-    		double calVal = calMat.get(0, 0);
-    		calVal =yi-calVal;
-    		bi.plusEquals(xi.times(2 * eta * calVal));
-    	}
-    	return bi;
-    } 
+
     private static boolean compareBetaEqual(Matrix oldBeta, Matrix newBeta){
     	boolean test = true;
     	int nCols = oldBeta.getColumnDimension();
     	for(int c=0; c<nCols; c++){
     		double oldB =oldBeta.get(0, c);
     		double newB = newBeta.get(0, c);
-    		if(Math.abs(oldB - newB) < 0.0000001) {
+    		if(oldB == newB) {
     			test = test & true;
     		}
     		else {
@@ -127,11 +129,9 @@ public class LinearRegression {
     	}
     	return test;
     }
-    private static Matrix getClosedBeta(Matrix trainX, Matrix trainY) {
-    	Matrix xT = modifiedX(trainX).transpose();
-    	Matrix result = xT.times(modifiedX(trainX)).inverse().times(xT.times(trainY));
-    	return result;
-    	}
+    // end functions to calculate SGD
+    
+    // start functions to calculate SGD
     private static Matrix getbgdBeta(Matrix trainX, Matrix trainY) {
     	/****************Please Fill Missing Lines Here*****************/
     	//get batch gradient descent beta
@@ -192,25 +192,16 @@ public class LinearRegression {
     			xi.set(0, c, trainX.get(r, c));  			
     			bi.set(0, c, beta.get(0, c));
     		}
-//    		xi.print(0, 4);
-//    		bi.print(0, 2);
-    		
     		yi = trainY.get(r, 0);
-//    		System.out.println(yi);
     		Matrix calMat = bi.times(xi.transpose());
-//    		calMat.print(0,  4);
     		double calVal = calMat.get(0, 0);
-//    		System.out.println(calVal);
     		calVal -= yi;
-//    		System.out.println(calVal);
-//    		System.out.println("Xi");
-//    		xi.times(2 * calVal).print(0, 4);
     		sumXi.plusEquals(xi.times(2 * calVal));
-//    		sumXi.print(0, 4);
     	}
-//    	sumXi.print(0, 4);
     	return sumXi;
     } 
+    
+ // start functions to calculate SGD
     
     /**
      * @params: predicted Y matrix
