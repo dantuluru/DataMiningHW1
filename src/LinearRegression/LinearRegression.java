@@ -24,13 +24,17 @@ public class LinearRegression {
         /* Linear Regression */
         /* 2 step process */
         // 1) find beta
-       Matrix closedBeta = getClosedBeta(train_x, train_y);
-       Matrix bgdBeta = getbgdBeta(train_x, train_y);
+        normalization(train_x,test_x,train_y);
+        Matrix closedBeta = getClosedBeta(train_x, train_y);
+        Matrix bgdBeta = getbgdBeta(train_x, train_y);
         Matrix sgdBeta = getsgdBeta(train_x, train_y);
         // 2) predict y for test data using beta calculated from train data
         Matrix predictedClosedY = modifiedX(test_x).times(closedBeta);
         Matrix predictedbgdY = test_x.times(bgdBeta);
         Matrix predictedsgdY = test_x.times(sgdBeta);
+        mse(predictedClosedY, train_y, "ClosedFormLinearRegression : ");
+        mse(predictedbgdY, train_y, "BGD : ");
+        mse(predictedsgdY, train_y, "SGD : ");
         // Output
         printClosedOutput(predictedClosedY);
         printbgdOutput(predictedbgdY);
@@ -75,15 +79,15 @@ public class LinearRegression {
     private static Matrix getsgdBeta(Matrix trainX, Matrix trainY) {
     	int nCols = trainX.getColumnDimension();
     	int nRows = trainX.getRowDimension();
-    	double eta = 0.001;
+    	double eta = 0.0001;
     	Matrix oldBeta = new Matrix(1, nCols);
     	Matrix newBeta = new Matrix(1,nCols);
     		for(int c=0; c<nCols; c++){
     			oldBeta.set(0, c, 0);
-    			newBeta.set(0, c, 0);
+    			newBeta.set(0, c, 1);
     		}
     	 int n = 0;
-    	 while(n < 1000) {
+    	 while(n < 100) {
     	    	Matrix xi = new Matrix(1, nCols);
     	    	Matrix bi = new Matrix(1, nCols);
     	    	Matrix yi = new Matrix(1, 1);
@@ -108,10 +112,8 @@ public class LinearRegression {
     		    	}
     	    	}
     	    	n++;
-    	    	System.out.println(n);
     	 }
- 		 return newBeta.transpose();
-    	
+    	 return newBeta.transpose();	
     }
 
     private static boolean compareBetaEqual(Matrix oldBeta, Matrix newBeta){
@@ -136,7 +138,7 @@ public class LinearRegression {
     	/****************Please Fill Missing Lines Here*****************/
     	//get batch gradient descent beta
     	int nCols = trainX.getColumnDimension();
-    	double eta = 0.00001;
+    	double eta = 0.000001;
     	Matrix oldBeta = new Matrix(1, nCols);
     		for(int c=0; c<nCols; c++){
     			oldBeta.set(0, c, 1);
@@ -154,7 +156,7 @@ public class LinearRegression {
     			break;
     		}
     		n++;
-    		if (n == 5000) {
+    		if (n == 2000) {
     			break;
     		}
     	}
@@ -203,6 +205,73 @@ public class LinearRegression {
     
  // start functions to calculate SGD
     
+    private static void mse(Matrix predictedY, Matrix trainY, String type){
+    	double msqerr = 0;
+    	int nRows = trainY.getRowDimension();
+    	int nCols = trainY.getColumnDimension();
+    	for (int r=0; r< nRows; r++){
+    		for(int c=0; c< nCols; c++){
+    			double trainy = trainY.get(r, c);
+    			double predictedy = predictedY.get(r, c);
+    			msqerr += (Math.pow((trainy - predictedy), 2))/nRows;
+    		}
+    	}
+    	System.out.print(type);
+    	System.out.println(msqerr);
+    } 
+    
+    private static void normalization(Matrix trainX, Matrix testX,Matrix train_y){
+    	int nRows = trainX.getRowDimension();
+    	int nCols = trainX.getColumnDimension();
+    	Matrix zscore_testX = new Matrix(nRows,nCols);
+    	Matrix zscore_trainX = new Matrix(nRows,nCols);
+    	double nu = 0;
+    	double sigma = 0;
+    	for(int r=0;r<nRows;r++)
+    	{
+	    	double nu_sum = 0;
+	    	double sig_train_sum = 0;
+	    	double sig_test_sum = 0;
+	    	double sig_train = 0;
+	    	double sig_test = 0;
+	    	double sig_train_mean = 0;
+	    	double sig_test_mean = 0;
+	    	//double mean = 0;
+	    	Double train[] = new Double[nRows];
+	    	Double test[] = new Double[nRows];
+	    	
+	    	for(int c=0;c<nCols;c++){
+	    		nu_sum += trainX.get(r, c);
+	    		}
+	    	nu = nu_sum/nRows;
+	    
+	    	for(int c=0;c<nCols;c++)
+	    	{
+	    		train[c] = Math.pow(trainX.get(r, c),2) - Math.pow(nu, 2);
+	    		//test[c] = Math.pow(testX.get(r, c),2) - Math.pow(nu, 2);
+	    		sig_train_sum += train[c];
+	    		//sig_test_sum += test[c];
+	    	}
+	    	sig_train_mean = sig_train_sum/nRows;
+	    	//sig_test_mean = sig_test_sum/nRows;
+	    	sig_train = Math.sqrt(sig_train_mean);
+	    	//sig_test = Math.sqrt(sig_test_mean);
+	    	for(int c=0;c<nCols;c++)
+	    	{
+	    		zscore_trainX.set(r, c, (trainX.get(r, c) - nu) / sig_train);
+	    		zscore_testX.set(r, c, (testX.get(r, c) - nu) / sig_test);
+	    	}
+    	}
+    	Matrix closedBeta = getClosedBeta(zscore_trainX, train_y);
+        Matrix bgdBeta = getbgdBeta(zscore_trainX, train_y);
+        Matrix sgdBeta = getsgdBeta(zscore_trainX, train_y);
+        Matrix predictedClosedY = modifiedX(zscore_trainX).times(closedBeta);
+        Matrix predictedbgdY = zscore_trainX.times(bgdBeta);
+        Matrix predictedsgdY = zscore_trainX.times(sgdBeta);
+        mse(predictedClosedY, train_y, "ZscoreClosedFormLinearRegression : ");
+        mse(predictedbgdY, train_y, "ZscoreBGD : ");
+        mse(predictedsgdY, train_y, "ZscoreSGD : ");
+    }
     /**
      * @params: predicted Y matrix
      * outputs the predicted y values to the text file named "linear-regression-output"
