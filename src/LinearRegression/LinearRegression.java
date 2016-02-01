@@ -5,7 +5,6 @@ import Jama.Matrix;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.text.DecimalFormat;
 
 /**
  * Simple Linear Regression implementation
@@ -25,13 +24,17 @@ public class LinearRegression {
         /* Linear Regression */
         /* 2 step process */
         // 1) find beta
-        Matrix beta = getBeta(train_x, train_y);
+        Matrix closedBeta = getClosedBeta(train_x, train_y);
+        Matrix bgdBeta = getbgdBeta(train_x, train_y);
+        Matrix sgdBeta = getsgdBeta(train_x, train_y);
         // 2) predict y for test data using beta calculated from train data
-//        Matrix predictedY = modifiedX(test_x).times(beta);
-        Matrix predictedY = test_x.times(beta);
+        Matrix predictedClosedY = modifiedX(test_x).times(closedBeta);
+        Matrix predictedbgdY = test_x.times(bgdBeta);
+        Matrix predictedsgdY = test_x.times(sgdBeta);
         // Output
-        printOutput(predictedY);
-        
+        printClosedOutput(predictedClosedY);
+        printbgdOutput(predictedbgdY);
+        printsgdOutput(predictedsgdY);
         System.out.println("Done");
     }
     
@@ -59,44 +62,59 @@ public class LinearRegression {
     /**  @params: X and Y matrix of training data
      * returns value of beta calculated using the formula beta = (X^T*X)^ -1)*(X^T*Y)
      */
-    private static Matrix getBeta(Matrix trainX, Matrix trainY) {
+    private static Matrix getsgdBeta(Matrix trainX, Matrix trainY) {
+    	
+    }
+    private static Matrix getClosedBeta(Matrix trainX, Matrix trainY) {
+    	Matrix xT = modifiedX(trainX).transpose();
+    	Matrix result = xT.times(modifiedX(trainX)).inverse().times(xT.times(trainY));
+    	return result;
+    	}
+    private static Matrix getbgdBeta(Matrix trainX, Matrix trainY) {
     	/****************Please Fill Missing Lines Here*****************/
     	//get batch gradient descent beta
     	int nCols = trainX.getColumnDimension();
-    	double eta = 0.005;
+    	double eta = 0.00001;
     	Matrix oldBeta = new Matrix(1, nCols);
     		for(int c=0; c<nCols; c++){
     			oldBeta.set(0, c, 1);
     		}
     	Matrix newBeta = new Matrix(1,nCols);
+    	for(int c=0; c<nCols; c++){
+			newBeta.set(0, c, 1);
+		}
     	int n = 0;
 //    	while(n<1){
-         while(!compareBeta(oldBeta,newBeta)){
+//         while(!compareBeta(oldBeta,newBeta)){
+    	 while(true) {
     		oldBeta = newBeta;
-    		Matrix calMat = gradientBeta(trainX,trainY, oldBeta);
-    		newBeta = oldBeta.minus(calMat.timesEquals(eta));
+    		Matrix sumXi = gradientBeta(trainX,trainY, oldBeta);
+//    		sumXi.timesEquals(eta).print(0, 4);
+    		newBeta = oldBeta.minus(sumXi.timesEquals(eta));
+    		if(compareBeta(oldBeta, newBeta)) {
+    			break;
+    		}
     		n++;
     		System.out.println(n);
-    		if (n == 5) {
+    		if (n == 5000) {
     			break;
     		}
     	}
     	//return newBeta;
-    	//Matrix xT = modifiedX(trainX).transpose();
-    	//Matrix result = xT.times(modifiedX(trainX)).inverse().times(xT.times(trainY));
+    	
     	
     	return newBeta.transpose(); 	
     }
     
     private static boolean compareBeta(Matrix oldBeta, Matrix newBeta){
-    	oldBeta.print(0, 2);
-    	newBeta.print(0, 2);
+//    	oldBeta.print(0, 2);
+//    	newBeta.print(0, 2);
     	boolean test = true;
     	int nCols = oldBeta.getColumnDimension();
     	for(int c=0; c<nCols; c++){
     		double oldB =oldBeta.get(0, c);
     		double newB = newBeta.get(0, c);
-    		if( Math.abs(oldB - newB) < 0.001 ) { // abs(old - new) < eplsilon)Math.abs(d - 1.0) < 0.001);
+    		if( Math.abs(oldB - newB) < 0.0001 ) { // abs(old - new) < eplsilon)Math.abs(d - 1.0) < 0.001);
     			test = test & true;
     		}
     		else {
@@ -110,6 +128,7 @@ public class LinearRegression {
     private static Matrix gradientBeta(Matrix trainX, Matrix trainY, Matrix beta){
     	int nRows = trainX.getRowDimension();
     	int nCols = trainX.getColumnDimension();
+//    	beta.print(0, 4);
     	
     	Matrix xi = new Matrix(1, nCols);
     	Matrix bi = new Matrix(1, nCols);
@@ -123,72 +142,52 @@ public class LinearRegression {
     			xi.set(0, c, trainX.get(r, c));  			
     			bi.set(0, c, beta.get(0, c));
     		}
+//    		xi.print(0, 4);
+//    		bi.print(0, 2);
+    		
     		yi = trainY.get(r, 0);
+//    		System.out.println(yi);
     		Matrix calMat = bi.times(xi.transpose());
+//    		calMat.print(0,  4);
     		double calVal = calMat.get(0, 0);
+//    		System.out.println(calVal);
     		calVal -= yi;
+//    		System.out.println(calVal);
+//    		System.out.println("Xi");
+//    		xi.times(2 * calVal).print(0, 4);
     		sumXi.plusEquals(xi.times(2 * calVal));
+//    		sumXi.print(0, 4);
     	}
+//    	sumXi.print(0, 4);
     	return sumXi;
     } 
     
-//    
-//    private static double mean_square_error(Matrix predictedY, Matrix actualY){
-//    	double MSE;
-//    	Matrix subMat = actualY.minus(predictedY);
-//    	for(r)
-//    	return MSE;
-//    }
-////    
-//    private static Matrix gradient_descent(Matrix x, Matrix y, Matrix theta, double alpha, int num_iters){
-//    	int m = y.getRowDimension();
-//    	Matrix xTrans = x.transpose();
-//    	
-//    	for (int i=0; i<num_iters; i++) {
-//    		Matrix hypothesis = x.times(theta);
-//    		Matrix loss = hypothesis.minus(y);
-//    		// formula for cost = (loss^2)/(2*m)
-//    		Matrix cost = squareMat(loss,m);
-//   		    Matrix gradient = calculateMat(xTrans, loss, m);
-//   		    Matrix temp = matSub(theta, alpha);
-//   		    theta = theta.minus(gradient.times(alpha));
-//   		    
-//   		    // Check for convergence
-//   		    // Get new MSE, using trainX, theta
-//    	}
-//        return theta;
-//    }
-    //to subtract a scalar from matrix
-//    private static Matrix matSub(Matrix A, double alpha){
-//    	int nRows = A.getRowDimension();
-//    	int nCols = A.getColumnDimension();
-//    	for (int r=0; r<nRows; r++){
-//    		for(int c=0; c<nCols; c++){
-//    			A.set(r, c, A.get(r,c)-alpha);
-//    		}
-//    	}
-//    	return A;
-//    }
-    
-//    private static Matrix squareMat(Matrix A, int m){
-//    	int nRows = A.getRowDimension();
-//    	int nCols = A.getColumnDimension();
-//    	for (int r=0; r<nRows; r++){
-//    		for(int c=0; c<nCols; c++){
-//    			double calcValue = (A.get(r,c) * A.get(r,c))/(2 * m);
-//    			A.set(r,c,calcValue);
-//    		}
-//    	}
-//    return A;
-//    }
-
-
     /**
      * @params: predicted Y matrix
      * outputs the predicted y values to the text file named "linear-regression-output"
      */
-    public static void printOutput(Matrix predictedY) throws IOException {
-        FileWriter fStream = new FileWriter("/Users/mounika/Documents/workspace/DataMiningHW1/output/linear_regression/linear-regression-outputGrad.txt");     // Output File
+    public static void printClosedOutput(Matrix predictedY) throws IOException {
+        FileWriter fStream = new FileWriter("/Users/mounika/Documents/workspace/DataMiningHW1/output/linear_regression/linear-regression-outputClosed.txt");     // Output File
+        BufferedWriter out = new BufferedWriter(fStream);
+        for (int row =0; row<predictedY.getRowDimension(); row++) {
+            out.write(String.valueOf(predictedY.get(row, 0)));
+            out.newLine();
+        }
+        out.close();
+    }
+    
+    public static void printbgdOutput(Matrix predictedY) throws IOException {
+        FileWriter fStream = new FileWriter("/Users/mounika/Documents/workspace/DataMiningHW1/output/linear_regression/linear-regression-outputbgd.txt");     // Output File
+        BufferedWriter out = new BufferedWriter(fStream);
+        for (int row =0; row<predictedY.getRowDimension(); row++) {
+            out.write(String.valueOf(predictedY.get(row, 0)));
+            out.newLine();
+        }
+        out.close();
+    }
+    
+    public static void printsgdOutput(Matrix predictedY) throws IOException {
+        FileWriter fStream = new FileWriter("/Users/mounika/Documents/workspace/DataMiningHW1/output/linear_regression/linear-regression-outputsgd.txt");     // Output File
         BufferedWriter out = new BufferedWriter(fStream);
         for (int row =0; row<predictedY.getRowDimension(); row++) {
             out.write(String.valueOf(predictedY.get(row, 0)));
