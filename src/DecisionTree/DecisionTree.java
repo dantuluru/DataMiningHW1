@@ -89,7 +89,13 @@ public class DecisionTree  {
         Instances[] splitData = this.splitData(data, att);
 
         /****************Please Fill Missing Lines Here*****************/
-        
+        double attrInfo = 0;
+        for(int i=0; i<splitData.length; i++){
+        	double attrEntropy = this.computeEntropy(splitData[i]);
+        	double divsion = splitData[i].numInstances()/data.numInstances();
+        	attrInfo = attrEntropy*divsion + attrInfo;
+        }
+        infoGain -= attrInfo;
         return infoGain;
     }
     //Computes the entropy of a dataset.
@@ -114,9 +120,14 @@ public class DecisionTree  {
         }
 
         /****************Please Fill Missing Lines Here*****************/
-        
+        int length = (int)classProbVec.length;
+        for(int i=0; i<length; i++){
+        	if(classProbVec[i] != 0){
+        		double calVal = classProbVec[i]*Math.log(classProbVec[i])/Math.log(2);
+        		totalEntropy = (totalEntropy - calVal);
+        	}
+        }
         return totalEntropy;
-
     }
     //Splits a dataset according to the values of a nominal attribute.
     private Instances[] splitData(Instances data, Attribute att) {
@@ -161,18 +172,29 @@ public class DecisionTree  {
         }
         return text.toString();
     }
+    
+    private static void kfold(Instances data){
+    	int nData = data.numInstances();
+    	Instances testData = new Instances(data);
+    	for(int i=0;i<= nData; i++ ){
+    		if(i%5==0){
+    			testData.add(data.instance(i));
+    		}
+    	}
+    }
 
     public void decisionTree() throws Exception {
-        BufferedReader file = Utility.readFile("data\\decision_tree\\weather-nominal.arff");
+        BufferedReader file = Utility.readFile("/Users/mounika/Documents/workspace/DataMiningHW1/data/decision_tree/Edible.arff");
         Instances data = new Instances(file);
         int cIdx=data.numAttributes()-1;
         data.setClassIndex(cIdx);
+        kfold(data);
         buildClassifier(data);
         printOutput(data);
     }
 
     private void printOutput(Instances data) throws IOException, NoSupportForMissingValuesException {
-        FileWriter fStream = new FileWriter("output\\decision_tree\\decision-tree-output.txt");     // Output File
+        FileWriter fStream = new FileWriter("/Users/mounika/Documents/workspace/DataMiningHW1/output/decision_tree/decision-tree-output.txt");     // Output File
         BufferedWriter out = new BufferedWriter(fStream);
 
         for(int index =0; index<data.numInstances();index++) {

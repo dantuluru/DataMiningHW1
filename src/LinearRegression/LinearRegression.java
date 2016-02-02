@@ -5,6 +5,7 @@ import Jama.Matrix;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Scanner;
 
 /**
  * Simple Linear Regression implementation
@@ -20,26 +21,48 @@ public class LinearRegression {
 
         Matrix testData = MatrixData.getDataMatrix("/Users/mounika/Documents/workspace/DataMiningHW1/data/linear_regression/linear-regression-test.csv");
         Matrix test_x = testData.getMatrix(0, testData.getRowDimension() - 1, 0, testData.getColumnDimension() - 2);
-
+        Matrix test_y = testData.getMatrix(0, testData.getRowDimension()-1, testData.getColumnDimension()-1, testData.getColumnDimension()-1);
         /* Linear Regression */
         /* 2 step process */
         // 1) find beta
-        normalization(train_x,test_x,train_y);
-        Matrix closedBeta = getClosedBeta(train_x, train_y);
-        Matrix bgdBeta = getbgdBeta(train_x, train_y);
-        Matrix sgdBeta = getsgdBeta(train_x, train_y);
-        // 2) predict y for test data using beta calculated from train data
-        Matrix predictedClosedY = modifiedX(test_x).times(closedBeta);
-        Matrix predictedbgdY = test_x.times(bgdBeta);
-        Matrix predictedsgdY = test_x.times(sgdBeta);
-        mse(predictedClosedY, train_y, "ClosedFormLinearRegression : ");
-        mse(predictedbgdY, train_y, "BGD : ");
-        mse(predictedsgdY, train_y, "SGD : ");
-        // Output
-        printClosedOutput(predictedClosedY);
-        printbgdOutput(predictedbgdY);
-        printsgdOutput(predictedsgdY);
-        System.out.println("Done");
+        
+        System.out.println("\tLinear Regression");
+        System.out.println("1) Closed-Form Linear Regression");
+        System.out.println("2) Batch Gradient Descent");
+        System.out.println("3) Stochastic Gradient Descent");
+        System.out.println("4) Exit\n");
+        System.out.println("Enter the number corresponding to the algorithm you want to run \n *(it may take some time to run):");
+        Scanner in = new Scanner(System.in);
+        int choice = in.nextInt();
+        switch(choice){
+            case 1: Matrix closedBeta = getClosedBeta(modifiedX(train_x), train_y);
+            		Matrix predictedClosedY = modifiedX(test_x).times(closedBeta);
+            		mse(predictedClosedY, test_y, "Closed-FormLinearRegression Mean Square Error: ");
+            		Matrix zClosedBeta = getClosedBeta(normalization(modifiedX(train_x),modifiedX(test_x),train_y,test_y, false), train_y);
+            		Matrix zPredictedClosedY = normalization(modifiedX(train_x),modifiedX(test_x),train_y,test_y, true).times(zClosedBeta);
+            		mse(zPredictedClosedY, test_y, "Z score Closed-FormLinearRegression Mean Square Error: ");
+            		printOutput(predictedClosedY);
+                    break;
+            case 2: Matrix bgdBeta = getbgdBeta(modifiedX(train_x), train_y);
+            		Matrix predictedbgdY = modifiedX(test_x).times(bgdBeta);
+            		mse(predictedbgdY, test_y, "Batch Gradient Descent Mean Square Error : ");
+            		Matrix zBgdBeta = getbgdBeta(normalization(modifiedX(train_x),modifiedX(test_x),train_y,test_y, false), train_y);
+            		Matrix zPredictedbgdY = normalization(modifiedX(train_x),modifiedX(test_x),train_y,test_y, true).times(zBgdBeta);
+            		mse(zPredictedbgdY, test_y, "Z score Batch Gradient Descent Mean Square Error : ");
+            		printOutput(predictedbgdY);
+                    break;
+            case 3: Matrix sgdBeta = getsgdBeta(modifiedX(train_x), train_y);
+            		Matrix predictedsgdY = modifiedX(test_x).times(sgdBeta);
+            		mse(predictedsgdY, test_y, "Stochastic Gradient Descent Mean Square Error : ");
+            		Matrix zSgdBeta = getsgdBeta(normalization(modifiedX(train_x),modifiedX(test_x),train_y,test_y, false), train_y);
+            		Matrix zPredictedsgdY = normalization(modifiedX(train_x),modifiedX(test_x),train_y,test_y,true).times(zSgdBeta);
+            		mse(zPredictedsgdY, test_y, "Z score Stochastic Gradient Descent Mean Square Error : ");
+            		printOutput(predictedsgdY);
+            		break;
+            case 4: System.exit(0);
+        }
+        
+        System.out.println("Done"); 
     }
     
     /**  @params: X and Y matrix of training data
@@ -48,8 +71,8 @@ public class LinearRegression {
     
  // start functions to calculate Closed LR
     private static Matrix getClosedBeta(Matrix trainX, Matrix trainY) {
-    	Matrix xT = modifiedX(trainX).transpose();
-    	Matrix result = xT.times(modifiedX(trainX)).inverse().times(xT.times(trainY));
+    	Matrix xT = trainX.transpose();
+    	Matrix result = xT.times(trainX).inverse().times(xT.times(trainY));
     	return result;
     	}
     
@@ -115,7 +138,7 @@ public class LinearRegression {
     	 }
     	 return newBeta.transpose();	
     }
-
+    
     private static boolean compareBetaEqual(Matrix oldBeta, Matrix newBeta){
     	boolean test = true;
     	int nCols = oldBeta.getColumnDimension();
@@ -131,9 +154,9 @@ public class LinearRegression {
     	}
     	return test;
     }
-    // end functions to calculate SGD
+//    // end functions to calculate SGD
     
-    // start functions to calculate SGD
+    // start functions to calculate BGD
     private static Matrix getbgdBeta(Matrix trainX, Matrix trainY) {
     	/****************Please Fill Missing Lines Here*****************/
     	//get batch gradient descent beta
@@ -156,7 +179,7 @@ public class LinearRegression {
     			break;
     		}
     		n++;
-    		if (n == 2000) {
+    		if (n == 5000) {
     			break;
     		}
     	}
@@ -203,7 +226,7 @@ public class LinearRegression {
     	return sumXi;
     } 
     
- // start functions to calculate SGD
+ // end functions to calculate BGD
     
     private static void mse(Matrix predictedY, Matrix trainY, String type){
     	double msqerr = 0;
@@ -213,91 +236,51 @@ public class LinearRegression {
     		for(int c=0; c< nCols; c++){
     			double trainy = trainY.get(r, c);
     			double predictedy = predictedY.get(r, c);
-    			msqerr += (Math.pow((trainy - predictedy), 2))/nRows;
-    		}
+    			msqerr += (Math.pow((trainy - predictedy), 2));
+    		}	
     	}
+    	msqerr = msqerr/nRows;
     	System.out.print(type);
     	System.out.println(msqerr);
     } 
     
-    private static void normalization(Matrix trainX, Matrix testX,Matrix train_y){
-    	int nRows = trainX.getRowDimension();
+    private static Matrix normalization(Matrix trainX, Matrix testX, Matrix train_y, Matrix test_y, boolean test){
     	int nCols = trainX.getColumnDimension();
-    	Matrix zscore_testX = new Matrix(nRows,nCols);
-    	Matrix zscore_trainX = new Matrix(nRows,nCols);
-    	double nu = 0;
-    	double sigma = 0;
-    	for(int r=0;r<nRows;r++)
-    	{
-	    	double nu_sum = 0;
-	    	double sig_train_sum = 0;
-	    	double sig_test_sum = 0;
-	    	double sig_train = 0;
-	    	double sig_test = 0;
-	    	double sig_train_mean = 0;
-	    	double sig_test_mean = 0;
-	    	//double mean = 0;
-	    	Double train[] = new Double[nRows];
-	    	Double test[] = new Double[nRows];
-	    	
-	    	for(int c=0;c<nCols;c++){
-	    		nu_sum += trainX.get(r, c);
-	    		}
-	    	nu = nu_sum/nRows;
-	    
-	    	for(int c=0;c<nCols;c++)
-	    	{
-	    		train[c] = Math.pow(trainX.get(r, c),2) - Math.pow(nu, 2);
-	    		//test[c] = Math.pow(testX.get(r, c),2) - Math.pow(nu, 2);
-	    		sig_train_sum += train[c];
-	    		//sig_test_sum += test[c];
-	    	}
-	    	sig_train_mean = sig_train_sum/nRows;
-	    	//sig_test_mean = sig_test_sum/nRows;
-	    	sig_train = Math.sqrt(sig_train_mean);
-	    	//sig_test = Math.sqrt(sig_test_mean);
-	    	for(int c=0;c<nCols;c++)
-	    	{
-	    		zscore_trainX.set(r, c, (trainX.get(r, c) - nu) / sig_train);
-	    		zscore_testX.set(r, c, (testX.get(r, c) - nu) / sig_test);
-	    	}
-    	}
-    	Matrix closedBeta = getClosedBeta(zscore_trainX, train_y);
-        Matrix bgdBeta = getbgdBeta(zscore_trainX, train_y);
-        Matrix sgdBeta = getsgdBeta(zscore_trainX, train_y);
-        Matrix predictedClosedY = modifiedX(zscore_trainX).times(closedBeta);
-        Matrix predictedbgdY = zscore_trainX.times(bgdBeta);
-        Matrix predictedsgdY = zscore_trainX.times(sgdBeta);
-        mse(predictedClosedY, train_y, "ZscoreClosedFormLinearRegression : ");
-        mse(predictedbgdY, train_y, "ZscoreBGD : ");
-        mse(predictedsgdY, train_y, "ZscoreSGD : ");
+    	int nRows = trainX.getRowDimension();
+    	Matrix zscore_trainX = new Matrix(nRows,nCols,1);
+    	Matrix zscore_testX = new Matrix(nRows,nCols,1);
+  	   	for(int c=1; c< nCols; c++){
+  		   double[] temp = new double[nRows];
+  		   int length = temp.length;
+  		   double mean = 0;
+  		   for(int r=0;r<nRows;r++){
+  			   temp[r] = trainX.get(r, c);
+  			   mean += temp[r];
+  		   }
+  		   mean = mean/length;
+  		   double sigma = 0;
+  		   for (int i = 0; i < length; i++){
+  		       sigma += Math.pow((temp[i] - mean),2);
+  		   }
+  		   sigma = sigma/length;
+  		   sigma = Math.sqrt(sigma);
+  		   for(int r=0;r<nRows;r++){
+	  			zscore_trainX.set(r,c,(trainX.get(r,c)-mean)/sigma);
+	  			zscore_testX.set(r,c,(testX.get(r,c)-mean)/sigma);
+  		  }   
+  	   	}
+  	   	if(test){
+  		   return zscore_testX;
+  	   	}else{
+  		   return zscore_trainX;
+			   } 
     }
     /**
      * @params: predicted Y matrix
      * outputs the predicted y values to the text file named "linear-regression-output"
      */
-    public static void printClosedOutput(Matrix predictedY) throws IOException {
-        FileWriter fStream = new FileWriter("/Users/mounika/Documents/workspace/DataMiningHW1/output/linear_regression/linear-regression-outputClosed.txt");     // Output File
-        BufferedWriter out = new BufferedWriter(fStream);
-        for (int row =0; row<predictedY.getRowDimension(); row++) {
-            out.write(String.valueOf(predictedY.get(row, 0)));
-            out.newLine();
-        }
-        out.close();
-    }
-    
-    public static void printbgdOutput(Matrix predictedY) throws IOException {
-        FileWriter fStream = new FileWriter("/Users/mounika/Documents/workspace/DataMiningHW1/output/linear_regression/linear-regression-outputbgd.txt");     // Output File
-        BufferedWriter out = new BufferedWriter(fStream);
-        for (int row =0; row<predictedY.getRowDimension(); row++) {
-            out.write(String.valueOf(predictedY.get(row, 0)));
-            out.newLine();
-        }
-        out.close();
-    }
-    
-    public static void printsgdOutput(Matrix predictedY) throws IOException {
-        FileWriter fStream = new FileWriter("/Users/mounika/Documents/workspace/DataMiningHW1/output/linear_regression/linear-regression-outputsgd.txt");     // Output File
+    public static void printOutput(Matrix predictedY) throws IOException {
+        FileWriter fStream = new FileWriter("/Users/mounika/Documents/workspace/DataMiningHW1/output/linear_regression/linear-regression-output.txt");     // Output File
         BufferedWriter out = new BufferedWriter(fStream);
         for (int row =0; row<predictedY.getRowDimension(); row++) {
             out.write(String.valueOf(predictedY.get(row, 0)));

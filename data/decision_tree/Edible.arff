@@ -1,0 +1,24 @@
+@relation eatable.symbolic
+
+@attribute color {yellow, green}
+@attribute size {small, large}
+@attribute shape {round, irregular}
+@attribute play {yes, no}
+
+@data
+yellow,small,round,yes
+yellow,small,round,no
+green,small,irregular,yes
+green,large,irregular,no
+yellow,large,round,yes
+yellow,small,round,yes
+yellow,small,round,yes
+yellow,small,round,yes
+green,small,round,no
+yellow,large,round,no
+yellow,large,round,yes
+yellow,large,round,no
+yellow,large,round,no
+yellow,large,round,no
+yellow,small,irregular,yes
+yellow,large,irregular,yes
