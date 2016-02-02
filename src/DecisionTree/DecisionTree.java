@@ -2,6 +2,7 @@ package DecisionTree;
 
 import java.io.*;
 import java.util.Enumeration;
+import java.util.Scanner;
 
 import weka.core.Attribute;
 import weka.core.Instance;
@@ -25,17 +26,17 @@ public class DecisionTree  {
     private double[] m_Distribution;
     // Class attribute of data set.
     private Attribute m_ClassAttribute;
-
+    int input = 1;
     public DecisionTree() {
     }
     //Builds decision tree classifier.
-    public void buildClassifier(Instances data) throws Exception {
+    public void buildClassifier(Instances data, int input) throws Exception {
     	
         data = new Instances(data);
-        this.makeTree(data);
+        this.makeTree(data, input);
     }
 
-    private void makeTree(Instances data) throws Exception {
+    private void makeTree(Instances data,int input) throws Exception {
         if(data.numInstances() == 0) {
             this.m_Attribute = null;
             this.m_ClassValue = Instance.missingValue();
@@ -44,10 +45,15 @@ public class DecisionTree  {
             double[] infoGains = new double[data.numAttributes()];
 
             Attribute splitData;
-            for(Enumeration attEnum = data.enumerateAttributes(); attEnum.hasMoreElements(); infoGains[splitData.index()] = this.computeInfoGain(data, splitData)) {
-                splitData = (Attribute)attEnum.nextElement();
+            if(input == 1){
+	            for(Enumeration attEnum = data.enumerateAttributes(); attEnum.hasMoreElements(); infoGains[splitData.index()] = this.computeInfoGain(data, splitData)) {
+	                splitData = (Attribute)attEnum.nextElement();
+	            }
+            }else{
+	            for(Enumeration attEnum = data.enumerateAttributes(); attEnum.hasMoreElements(); infoGains[splitData.index()] = this.computeGainRatio(data, splitData)) {
+	                splitData = (Attribute)attEnum.nextElement();
+	            }
             }
-
             this.m_Attribute = data.attribute(Utils.maxIndex(infoGains));
             if(Utils.eq(infoGains[this.m_Attribute.index()], 0.0D)) {
                 this.m_Attribute = null;
@@ -67,7 +73,7 @@ public class DecisionTree  {
 
                 for(int var8 = 0; var8 < this.m_Attribute.numValues(); ++var8) {
                     this.m_Successors[var8] = new DecisionTree();
-                    this.m_Successors[var8].makeTree(var7[var8]);
+                    this.m_Successors[var8].makeTree(var7[var8], input);
                 }
             }
         }
@@ -205,12 +211,26 @@ public class DecisionTree  {
         double count = 0.0;
         double accuracy = 0;
         double res = 0;
+        System.out.println("\tLinear Regression");
+        System.out.println("1) Information Gain");
+        System.out.println("2) Gain Ratio");
+        System.out.println("3) Exit\n");
+        System.out.println("Enter the number corresponding to the algorithm you want to run \n *(it may take some time to run):");
+        Scanner in = new Scanner(System.in);
+        int choice = in.nextInt();
+        switch(choice){
+            case 1: input = 1;
+            		break;
+            case 2: input = 2;
+            		break;
+            case 3: System.exit(0);
+            	}
         for (int n = 0; n < 5; n++) {
         	   Instances train = data.trainCV(5, n);
         	   Instances test = data.testCV(5, n);
-        	   buildClassifier(train);
+        	   buildClassifier(train, input);
         	   for(int i=0; i<test.numInstances(); i++){
-        		   count = printFoldOutput(test);
+        		   count = printOutput(test);
         	   } 
         	   double cal = count/test.numInstances();
                accuracy = accuracy + cal;
@@ -219,7 +239,7 @@ public class DecisionTree  {
         System.out.println(res);
     }
     
-    private double printFoldOutput(Instances data) throws IOException, NoSupportForMissingValuesException {
+    private double printOutput(Instances data) throws IOException, NoSupportForMissingValuesException {
         FileWriter fStream = new FileWriter("/Users/mounika/Documents/workspace/DataMiningHW1/output/decision_tree/decision-tree-output.txt");     // Output File
         BufferedWriter out = new BufferedWriter(fStream);
         double count = 0.0;
