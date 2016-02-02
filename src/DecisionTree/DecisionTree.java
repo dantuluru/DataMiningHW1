@@ -13,7 +13,7 @@ import Utility.Utility;
 /*Class for constructing an unpruned decision tree based on
 the ID3 algorithm. Can only deal with nominal attributes.
 No missing values allowed. Empty leaves may result in unclassified instances.
- */
+*/
 public class DecisionTree  {
     //The node's successors.
     private DecisionTree[] m_Successors;
@@ -30,6 +30,7 @@ public class DecisionTree  {
     }
     //Builds decision tree classifier.
     public void buildClassifier(Instances data) throws Exception {
+    	
         data = new Instances(data);
         this.makeTree(data);
     }
@@ -73,11 +74,11 @@ public class DecisionTree  {
     }
     //Classifies a given test instance using the decision tree.
     public double classifyInstance(Instance instance) throws NoSupportForMissingValuesException {
-        if(instance.hasMissingValue()) {
-            throw new NoSupportForMissingValuesException("DecisionTree: no missing values, please.");
-        } else {
+//        if(instance.hasMissingValue()) {
+//            throw new NoSupportForMissingValuesException("DecisionTree: no missing values, please.");
+//        } else {
             return this.m_Attribute == null?this.m_ClassValue:this.m_Successors[(int)instance.value(this.m_Attribute)].classifyInstance(instance);
-        }
+//        }
     }
 
     public String toString() {
@@ -172,34 +173,27 @@ public class DecisionTree  {
         }
         return text.toString();
     }
-    
-    private static void kfold(Instances data){
-    	int nData = data.numInstances();
-    	Instances testData = new Instances(data);
-    	for(int i=0;i<= nData; i++ ){
-    		if(i%5==0){
-    			testData.add(data.instance(i));
-    		}
-    	}
-    }
 
     public void decisionTree() throws Exception {
-        BufferedReader file = Utility.readFile("/Users/mounika/Documents/workspace/DataMiningHW1/data/decision_tree/Edible.arff");
+        BufferedReader file = Utility.readFile("/Users/mounika/Documents/workspace/DataMiningHW1/data/decision_tree/congress.arff");
         Instances data = new Instances(file);
         int cIdx=data.numAttributes()-1;
         data.setClassIndex(cIdx);
-        kfold(data);
-        buildClassifier(data);
-        printOutput(data);
+        for (int n = 0; n < 5; n++) {
+        	   Instances train = data.trainCV(5, n);
+        	   Instances test = data.testCV(5, n);
+        	   buildClassifier(train);
+               printOutput(test);
+        	 }
+        
     }
 
     private void printOutput(Instances data) throws IOException, NoSupportForMissingValuesException {
         FileWriter fStream = new FileWriter("/Users/mounika/Documents/workspace/DataMiningHW1/output/decision_tree/decision-tree-output.txt");     // Output File
         BufferedWriter out = new BufferedWriter(fStream);
-
         for(int index =0; index<data.numInstances();index++) {
             Instance testRowInstance = data.instance(index);
-            double prediction =classifyInstance(testRowInstance);
+            double prediction = classifyInstance(testRowInstance);
             out.write(data.classAttribute().value((int) prediction));
             out.newLine();
         }
