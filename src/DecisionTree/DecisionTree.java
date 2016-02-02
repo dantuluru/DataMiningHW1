@@ -74,11 +74,11 @@ public class DecisionTree  {
     }
     //Classifies a given test instance using the decision tree.
     public double classifyInstance(Instance instance) throws NoSupportForMissingValuesException {
-//        if(instance.hasMissingValue()) {
-//            throw new NoSupportForMissingValuesException("DecisionTree: no missing values, please.");
-//        } else {
+        if(instance.hasMissingValue()) {
+            throw new NoSupportForMissingValuesException("DecisionTree: no missing values, please.");
+        } else {
             return this.m_Attribute == null?this.m_ClassValue:this.m_Successors[(int)instance.value(this.m_Attribute)].classifyInstance(instance);
-//        }
+         }
     }
 
     public String toString() {
@@ -93,12 +93,35 @@ public class DecisionTree  {
         double attrInfo = 0;
         for(int i=0; i<splitData.length; i++){
         	double attrEntropy = this.computeEntropy(splitData[i]);
-        	double divsion = splitData[i].numInstances()/data.numInstances();
-        	attrInfo = attrEntropy*divsion + attrInfo;
+        	double calVal = (splitData[i].numInstances())*1.0/(data.numInstances())*1.0;
+        	attrInfo = 1.0*(attrEntropy*calVal) + attrInfo;
         }
         infoGain -= attrInfo;
         return infoGain;
     }
+    
+    private double computeGainRatio(Instances data, Attribute att) throws Exception {
+        double gainInfo=computeInfoGain(data,att);
+    	double splitInfo=computeSplitInfo(data,att);
+    	double gainRatio = gainInfo/splitInfo;
+        return gainRatio;
+    }
+
+    private double computeSplitInfo(Instances data, Attribute att){
+    	Instances[] splitData = this.splitData(data, att);
+        double nInstances=0.0D;
+        double gainInfoAtt=0.0D;
+        nInstances=data.numInstances();
+        for(int i=0;i<splitData.length;i++){       
+            
+        	Instances iSplitData = splitData[i];
+        	double nSplitInstances = iSplitData.numInstances();
+        	double instanceRatio=(nSplitInstances/nInstances)*1.0;
+        	gainInfoAtt+=-1*instanceRatio*(Math.log(instanceRatio)/Math.log(2));
+        }
+        return gainInfoAtt;
+    }
+    
     //Computes the entropy of a dataset.
     private double computeEntropy(Instances data) throws Exception {
         double[] classCounts = new double[data.numClasses()];
@@ -124,11 +147,11 @@ public class DecisionTree  {
         int length = (int)classProbVec.length;
         for(int i=0; i<length; i++){
         	if(classProbVec[i] != 0){
-        		double calVal = classProbVec[i]*Math.log(classProbVec[i])/Math.log(2);
+        		double calVal = (classProbVec[i]*Math.log(classProbVec[i])/Math.log(2))*1.0;
         		totalEntropy = (totalEntropy - calVal);
         	}
         }
-        return totalEntropy;
+        return (totalEntropy)*1.0;
     }
     //Splits a dataset according to the values of a nominal attribute.
     private Instances[] splitData(Instances data, Attribute att) {
@@ -177,26 +200,53 @@ public class DecisionTree  {
     public void decisionTree() throws Exception {
         BufferedReader file = Utility.readFile("/Users/mounika/Documents/workspace/DataMiningHW1/data/decision_tree/congress.arff");
         Instances data = new Instances(file);
-        int cIdx=data.numAttributes()-1;
+        int cIdx= 0; //data.numAttributes()-1;
         data.setClassIndex(cIdx);
+        double count = 0.0;
+        double accuracy = 0;
+        double res = 0;
         for (int n = 0; n < 5; n++) {
         	   Instances train = data.trainCV(5, n);
         	   Instances test = data.testCV(5, n);
         	   buildClassifier(train);
-               printOutput(test);
+        	   for(int i=0; i<test.numInstances(); i++){
+        		   count = printFoldOutput(test);
+        	   } 
+        	   double cal = count/test.numInstances();
+               accuracy = accuracy + cal;
+                res = (accuracy * 100) / 5;   
         	 }
-        
+        System.out.println(res);
     }
-
-    private void printOutput(Instances data) throws IOException, NoSupportForMissingValuesException {
+    
+    private double printFoldOutput(Instances data) throws IOException, NoSupportForMissingValuesException {
         FileWriter fStream = new FileWriter("/Users/mounika/Documents/workspace/DataMiningHW1/output/decision_tree/decision-tree-output.txt");     // Output File
         BufferedWriter out = new BufferedWriter(fStream);
+        double count = 0.0;
+        //double accuracy = 0.0;
         for(int index =0; index<data.numInstances();index++) {
             Instance testRowInstance = data.instance(index);
             double prediction = classifyInstance(testRowInstance);
-            out.write(data.classAttribute().value((int) prediction));
+            double actualTarget = testRowInstance.classValue();
+            if(actualTarget==prediction){	
+            	count++;
+            }
+            out.write(data.classAttribute().value((int)prediction));
             out.newLine();
         }
         out.close();
+        return count;
     }
+
+//    private void printOutput(Instances data) throws IOException, NoSupportForMissingValuesException {
+//        FileWriter fStream = new FileWriter("/Users/mounika/Documents/workspace/DataMiningHW1/output/decision_tree/decision-tree-output.txt");     // Output File
+//        BufferedWriter out = new BufferedWriter(fStream);
+//        for(int index =0; index<data.numInstances();index++) {
+//            Instance testRowInstance = data.instance(index);
+//            double prediction = classifyInstance(testRowInstance);
+//            out.write(data.classAttribute().value((int) prediction));
+//            out.newLine();
+//        }
+//        out.close();
+//    }
 }
