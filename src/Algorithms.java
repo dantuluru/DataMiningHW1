@@ -1,4 +1,5 @@
 import LinearRegression.LinearRegression;
+import LinearRegression.pagerank;
 import DecisionTree.DecisionTree;
 
 import java.util.Scanner;
